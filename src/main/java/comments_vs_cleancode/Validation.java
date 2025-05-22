@@ -7,12 +7,12 @@ import comments_vs_cleancode.model.User;
 import java.time.Instant;
 import java.util.List;
 
-public class ValidationWithComments {
+public class Validation {
 
     private final RentedBooksRepository rentRep;
     private final FeeRepository feeRep;
 
-    public ValidationWithComments( RentedBooksRepository rentRep, FeeRepository feeRep){
+    public Validation(RentedBooksRepository rentRep, FeeRepository feeRep){
         this.rentRep = rentRep;
         this.feeRep = feeRep;
     }
