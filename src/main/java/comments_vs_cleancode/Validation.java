@@ -9,52 +9,48 @@ import java.util.List;
 
 public class Validation {
 
-    private final RentedBooksRepository rentRep;
-    private final FeeRepository feeRep;
+    public static final int MAX_NUMBER_OF_RENTALS_AT_SAME_TIME = 3;
 
-    public Validation(RentedBooksRepository rentRep, FeeRepository feeRep){
-        this.rentRep = rentRep;
-        this.feeRep = feeRep;
+    private final RentedBooksRepository rentedBooksRepository;
+    private final FeeRepository feeRepository;
+
+    public Validation( RentedBooksRepository rentedBooksRepository, FeeRepository feeRepository){
+        this.rentedBooksRepository = rentedBooksRepository;
+        this.feeRepository = feeRepository;
     }
 
-    /**
-     * Checks if the user is allowed to checkout a book
-     *
-     * @param u The User
-     * @param b The book to rent
-     * @return True if he's allowed to checkout
-     */
-    public boolean check(User u, Book b) {
-
-        // check if the users still has an active subscription
-        Instant t1 = Instant.now();
-        if (t1.isAfter(u.getSubscriptionExpirationTime()) || t1.equals(u.getSubscriptionExpirationTime())) {
-            return false;
-        }
-
-        // The user is allowed to rent 3 books at the same time.
-        List<Book> bks = rentRep.getBooksRentedByUser(u);
-        if (bks.size() > 3) {
-            return false;
-        }
-
-        // check if the user has already rented the same Book
-        for (Book bk : bks) {
-            if (bk.getBookId().equals(b.getBookId())) {
-                return false;
-            }
-        }
-
-        // checks if the user has an open fee to pay
-        List<Fee> bls = feeRep.getOpenFeesOfUser(u);
-        for( Fee bl : bls){
-            boolean af = bl.getPaymentDeadline().isAfter(t1);
-            if( bl.getAmount()> 0.0 && af){
-                return false;
-            }
-        }
-
-        // user is allowed to rent to check out a book
-        return true;
+    public boolean isUserAllowedToRentBook(User user, Book bookToRent) {
+        return isUserStillSubscribed(user) &&
+                isUserAllowedToRentThisBook(user, bookToRent) &&
+                !doesUserHaveAnyUnpaidExpiredFees(user);
     }
+
+    private boolean isUserStillSubscribed(User user){
+        return Instant.now().isBefore( user.getSubscriptionExpirationTime() );
+    }
+
+    private boolean isUserAllowedToRentThisBook(User user, Book bookToRent){
+        List<Book> booksRentedByUser = rentedBooksRepository.getBooksRentedByUser(user);
+
+        return !isUserRentingMaxNumberOfBooks(booksRentedByUser) &&
+                !isUserAlreadyRentingIdenticalBook(bookToRent, booksRentedByUser);
+    }
+
+    private boolean isUserRentingMaxNumberOfBooks(List<Book> rentedBooks){
+        return rentedBooks.size() < MAX_NUMBER_OF_RENTALS_AT_SAME_TIME;
+    }
+
+    private boolean isUserAlreadyRentingIdenticalBook(Book bookToRent, List<Book> rentedBooks){
+        return rentedBooks.stream().anyMatch( book -> book.getBookId().equals(bookToRent.getBookId()));
+    }
+
+    private boolean doesUserHaveAnyUnpaidExpiredFees(User user){
+        List<Fee> fees = feeRepository.getOpenFeesOfUser(user);
+        return fees.stream().anyMatch(this::isFeeExpired);
+    }
+
+    private boolean isFeeExpired( Fee fee ){
+        return fee.getAmount() > 0.0 && fee.getPaymentDeadline().isAfter( Instant.now() );
+    }
+
 }
