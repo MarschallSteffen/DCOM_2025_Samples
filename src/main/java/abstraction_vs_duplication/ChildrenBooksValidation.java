@@ -18,6 +18,13 @@ public class ChildrenBooksValidation extends AbstractBookInventoryValidation {
     }
 
     @Override
+    public List<ValidationError> validate(Collection<String> storeIds) {
+        List<ValidationError> errors = super.validate(storeIds);
+        errors.removeIf(Objects::isNull);
+        return errors;
+    }
+
+    @Override
     protected List<String> getBookIdsForValidation() {
         return bookRepository.findByCategory("children").stream().map( Book::getId ).distinct().toList();
     }
@@ -33,10 +40,5 @@ public class ChildrenBooksValidation extends AbstractBookInventoryValidation {
         return new ValidationError(String.format("Store %s is missing children book %s", storeId, bookId));
     }
 
-    @Override
-    public List<ValidationError> validate(Collection<String> storeIds) {
-        List<ValidationError> errors = super.validate(storeIds);
-        errors.removeIf(Objects::isNull);
-        return errors;
-    }
+
 }
