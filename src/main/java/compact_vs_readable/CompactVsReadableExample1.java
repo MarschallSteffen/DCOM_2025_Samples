@@ -9,19 +9,12 @@ import java.util.stream.Collectors;
 class CompactVsReadableExample1 {
 
     private List<String> getBooksInStock(List<Book> books) {
-        List<String> booksInStock = new ArrayList<>();
-        for (Book book : books) {
-            String bookId = book.getBookId();
-            if (null != bookId) {
-                if (!bookId.isBlank()) {
-                    if (!BookService.isBookInStock(bookId)) {
-                        booksInStock.add(bookId);
-                    }
-                }
-            }
-        }
-        return booksInStock;
-
+        return books.stream()
+                .map(Book::getBookId)
+                .filter(Objects::nonNull)
+                .filter(Predicate.not(String::isBlank))
+                .filter(Predicate.not(BookService::isBookInStock))
+                .collect(Collectors.toList());
     }
 
 }
